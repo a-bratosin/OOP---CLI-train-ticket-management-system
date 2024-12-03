@@ -149,11 +149,12 @@ TrainItinerary itinerary_from_keyboard(){
     cin>>destination_temp;
     stations_temp.push_back(source_temp);
     
+    // TODO: funcție pt a verifica dacă textul este valid (dacă e doar ASCII, nu caractere UTF)
     cout<<"Introduceți câte stații sunt între "<<source_temp<<" și "<<destination_temp<<endl;
     cin>>number_stations;
     string intermediary_station_temp;
     for(int i=1; i<=number_stations; i++){
-        cout<<"Introduceți stația #"<<number_stations<<endl;
+        cout<<"Introduceți stația #"<<i<<endl;
         cin>>intermediary_station_temp;
         stations_temp.push_back(intermediary_station_temp);
     }
@@ -181,9 +182,10 @@ TrainItinerary itinerary_from_keyboard(){
         seats_taken_temp.push_back(make_pair(wagon_temp, seat_temp));
     }  
 
-    id = TrainItinerary::global_id;
+    id_temp = TrainItinerary::global_id;
     TrainItinerary::global_id++;
 
+    cout<<"test diacritice: "<<source_temp<<" "<<destination_temp<<endl;
     TrainItinerary output(id_temp,source_temp,destination_temp,stations_temp,departure_time_temp,departure_day_temp,arrival_time_temp,arrival_day_temp,seats_taken_temp);
     return output;
 }
@@ -420,5 +422,6 @@ int main(){
     
     // ok programul nu dă crash dacă încerci să deschizi un fișier gol, asta e bine
     Operator operator_test = Operator();
+    operator_test.add_itinerary();
     return 0;
 }
