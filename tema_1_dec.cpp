@@ -6,6 +6,7 @@
 #include <set>
 #include <utility>
 #include <sstream>
+#include <tuple>
 using namespace std;
 
 // clasa pt a parsa inputul de text
@@ -427,7 +428,48 @@ class User{
     }
 
 
-    
+    void buy_ticket(int train_id){
+        int class, wagon, seat;
+        wagon = -1; // default 
+        seat  = -1;
+        // ignorăm aici faptul că sunt vagoane diferite pt clasele 1 și 2
+
+        // TODO: exception handling pt asta
+        cout<<"Ce clasă doriți, 1 sau 2?"<<endl;
+        cin>>class;
+        if(cin.fail()){
+            throw(-1);
+            return;
+        }
+        if((class!=1)&&(class!=2)){
+            throw(1);
+            return;
+        }
+
+        cout<<"La ce vagon doriți?"<<endl;
+        cin>>wagon;
+        if(cin.fail()){
+            throw(-1);
+            return;
+        }
+        if(wagon>12){ // asum aici maxim 12 vagoane
+            throw(1);
+            return;
+        }
+
+        cout<<"Ce loc doriți?"<<endl;
+        cin>>seat;
+        if(cin.fail()){
+            throw(-1);
+            return;
+        }
+        if((seat<0)||(seat>110)){ 
+            throw(1);
+            return;
+        }
+
+        
+    }
 };
 
 
