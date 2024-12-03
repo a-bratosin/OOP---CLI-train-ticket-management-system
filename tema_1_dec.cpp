@@ -63,6 +63,9 @@ class TrainItinerary{
         vector<pair<int,int>> seats_taken;
     
     public:
+        // am nevoie să accesez direct stations în clasa User
+        friend class User;
+
         // id global folosit pt generarea elementelor nou-adăugate
         static int global_id;
 
@@ -123,6 +126,10 @@ class TrainItinerary{
 
         int get_id(){
             return id;
+        }
+
+        string get_departure_day(){
+            return departure_day;
         }
 };
 
@@ -317,7 +324,112 @@ class Operator{
         itinerary_arr.push_back(element);
     }
     
+    // Funcție care șterge cursa în funcție de ID
+    void remove_itinerary(int id){
+        int id_found = 0;
+        // aici aș putea face căutare binară, cum ID-urile sunt adăugate în ordine crescătoare
+        for(int i=0; i<itinerary_arr.size(); i++){
+            if (itinerary_arr[i].get_id() == id){
+                itinerary_arr.erase(itinerary_arr.begin()+i);
+                cout<<"Cursa cu ID-ul "<<id<<" a fost ștearsă cu success!"<<endl;
+                id_found = 1;
+                break;
+            }
+        }
+        if(id_found==0){
+            cout<<"Cursa cu ID-ul "<<id<<" nu a putut fi găsită!"<<endl;
+        }
+    }
 };
+
+
+// ----------------------------------------------------------------------------
+//                   Clasa de Utilizator
+// ----------------------------------------------------------------------------
+class User{
+    // aici refolosesc ft mult cod de la clasa Operator
+    // ar fi fost mai bine (și mai logic) să fi avut o clasă Actor, pe care să o moștenească atât User, cât și Operator
+    // totuși, nu mai am suficient timp pt a face refactoring, deci cam las așa
+    // o să fac cu moștenire în Kotlin tho
+
+    private:
+
+    string username;
+    // parola hash-uită
+    string password;
+
+    // string care conține numele fișierului de input/output
+    string itinerary_file;
+    vector<TrainItinerary> itinerary_arr;
+
+    public:
+
+    User(){
+        // AICI INTRODUC PARTEA DE LOGIN
+        // (o să pun în altă funcție partea de logare concretă, că pot să refolosesc din ea și la clasa de User)
+
+        // pe asta o decomentez după ce am informații în fișier
+        // ATENTIE: aici ar putea să meargă prost dacă VSCode nu deschide fișierul cu executabilul
+        // dacă se deschide din alt fișier mai sus în ierarhie, nu citește bine
+        itinerary_file = "train_itinerary.csv";
+
+        itinerary_arr = get_itinerary_list(itinerary_file);
+    }
+    
+    // dacă era să permit să se logheze mai mulți utilizatori/operatori în aceeași sesiune, aș face o funcție separată de write_changes()
+    ~User(){
+        ofstream output;
+        output.open(itinerary_file);
+
+        for(int i=0; i<itinerary_arr.size(); i++){
+            output<<itinerary_arr[i].write_to_line()<<endl;
+        }
+
+        output.close();
+    }
+
+
+    void show_trains(){
+        string source, destination, day;
+
+        // TODO: de pus și aici excepții pt input
+        cout<<"Introduceți stația de plecare (fără diacritice): "<<endl;
+        cin>>source;
+        cout<<"Introduceți stația destinație (fără diacritice): "<<endl;
+        cin>>destination;
+        cout<<"În ce zi vreți să plecați din stație? (format dd/mm/yyyy): "<<endl;
+        cin>>day;
+        // TODO: verificare pt curse din trecut
+
+        // cout<<day<<endl;
+        int trips_found = 0;
+        // vectorul stations include stațiile în ordinea în care sunt parcurse, deci putem să căutăm secvențial
+        // (algoritmul ăsta este ~O(n^3/2), dar nu prea se poate mai bine cu structurile de date folosite)
+        // (dacă am menține cv graf al stațiilor, e posibil să scoatem o eficiență mai bună)
+        for(int i=0; i<itinerary_arr.size(); i++){
+            for(int j=0; j<itinerary_arr[i].stations.size(); j++){
+                //verific mai întâi dacă stația de plecare se potrivește
+                if(itinerary_arr[i].stations[j] == source){
+                    for(int k=j+1; k< itinerary_arr[i].stations.size(); k++){
+                        if(itinerary_arr[i].stations[k] == destination){
+                            // cout<<itinerary_arr[i].get_departure_day()<<endl;
+                            if(itinerary_arr[i].get_departure_day() == day){
+                                trips_found++;
+                                cout<<itinerary_arr[i].write_to_line()<<endl;
+                            }
+                        }
+
+                    }
+                }
+            }
+        }
+        if(trips_found==0) cout<<"Nu există curse în intervalul de timp specificat!"<<endl;
+    }
+
+
+    
+};
+
 
 // ----------------------------------------------------------------------------
 //                   Algoritm pt verificarea parolei
@@ -421,7 +533,11 @@ int main(){
     cout<<function_test.write_to_line()<<endl;
     
     // ok programul nu dă crash dacă încerci să deschizi un fișier gol, asta e bine
-    Operator operator_test = Operator();
-    operator_test.add_itinerary();
+    //Operator operator_test = Operator();
+    //operator_test.add_itinerary();
+    //operator_test.remove_itinerary(2);
+
+    User user_test = User();
+    user_test.show_trains();
     return 0;
 }
