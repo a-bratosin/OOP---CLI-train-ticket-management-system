@@ -13,6 +13,10 @@ using namespace std;
 // preia numele fișierului și stochează liniile .csv-ului într-un vector de string
 
 class CSV_input{
+    private:
+
+    string in_filename;
+
     public:
 
     vector<string> elements;
@@ -21,7 +25,8 @@ class CSV_input{
         ifstream fin(filename);
         cout<<filename<<endl;
         //fin.open(filename, ios::in);
-
+        
+        in_filename = filename;
         string line;
 
         if(fin.is_open()){
@@ -43,7 +48,24 @@ class CSV_input{
         fin.close();
     }
 
+    // dacă vrem să schimbăm cv în CSV în mod direct, putem face direct din funcția asta
+    void write_to_file(){
+        cout<<"filename test "<<in_filename<<endl;
+        ofstream fout(in_filename);
 
+        for(int i=0; i<elements.size(); i++){
+            fout<<elements[i]<<endl;
+        }
+
+        fout.close();
+    }
+
+    void write_line(string new_line){
+        ofstream output;
+        output.open(in_filename, ios_base::app);
+
+        output<<new_line;
+    }
 };
 
 
@@ -273,6 +295,63 @@ vector<TrainItinerary> get_itinerary_list(string filename){
     return itinerary_arr;
 }
 
+vector<tuple<int,int,int>> get_ticket_list(string filename, string username){
+    vector<tuple<int,int,int>> output;
+    tuple<int,int,int> tuple_temp;
+    CSV_input input(filename);
+    int user_found = 0;
+
+    string element, tuple_number, user_tickets_temp;
+
+    // căutăm mai întâi utilizatorul în CSV
+    for (int i = 0; i< input.elements.size(); i++){
+        stringstream user_string(input.elements[i]);
+        getline(user_string, element, ',');
+
+        cout<<"test get_ticket_list: "<<element<<endl;
+        if(username==element){
+            user_found = 1;
+            cout<<"matched"<<endl;
+            getline(user_string, element, ',');
+            user_tickets_temp = input.elements[i];
+
+            // acum avem lista de tupluri, pe care o putem adăuga
+            while(getline(user_string, element, ':')){
+                stringstream temp(element);
+                
+                getline(temp, tuple_number, '-');
+                get<0>(tuple_temp) = stoi(tuple_number);
+
+                getline(temp, tuple_number, '-');
+                get<1>(tuple_temp) = stoi(tuple_number);
+
+                getline(temp, tuple_number, '-');
+                get<2>(tuple_temp) = stoi(tuple_number);
+
+            }
+
+            // programul va elimina stringul curent cu username-ul curent ca să-l adauge iarăși la final, în destructorul User-ului
+            input.elements.erase(input.elements.begin()+i);
+
+            cout<<"test stergere"<<endl;
+            for(int i=0; i<input.elements.size(); i++){
+                cout<<input.elements[i]<<endl;
+            }
+            input.write_to_file();
+            input.write_line(user_tickets_temp);
+
+            break;
+        }
+    }
+
+    if(!user_found){
+        cout<<"Utilizator nou; trebuie adăugat în CSV"<<endl;
+
+    }
+
+    return output;
+}
+
 // clasa operator
 // TODO: alg de autentificare
 class Operator{
@@ -360,8 +439,11 @@ class User{
     string password;
 
     // string care conține numele fișierului de input/output
-    string itinerary_file;
+    string itinerary_file; 
+    string ticket_file; // fișier separat pt biletele înregistrate
+    
     vector<TrainItinerary> itinerary_arr;
+    vector<tuple<int,int,int>> ticket_arr; // primul int este id-ul trenului, al doilea este vagonul (default -1, dacă nu a optat pt asta), ai treilea este locul (default -1, idem)
 
     public:
 
@@ -372,9 +454,14 @@ class User{
         // pe asta o decomentez după ce am informații în fișier
         // ATENTIE: aici ar putea să meargă prost dacă VSCode nu deschide fișierul cu executabilul
         // dacă se deschide din alt fișier mai sus în ierarhie, nu citește bine
+
+        username = "example@domain.com";
+
         itinerary_file = "train_itinerary.csv";
+        ticket_file = "user_tickets.csv";
 
         itinerary_arr = get_itinerary_list(itinerary_file);
+        ticket_arr = get_ticket_list(ticket_file, username);
     }
     
     // dacă era să permit să se logheze mai mulți utilizatori/operatori în aceeași sesiune, aș face o funcție separată de write_changes()
@@ -387,6 +474,8 @@ class User{
         }
 
         output.close();
+
+
     }
 
 
@@ -426,50 +515,76 @@ class User{
         }
         if(trips_found==0) cout<<"Nu există curse în intervalul de timp specificat!"<<endl;
     }
-
-
+    
     void buy_ticket(int train_id){
-        int class, wagon, seat;
-        wagon = -1; // default 
-        seat  = -1;
+        tuple<int,int,int> new_ticket;
+        int ticket_class;
+        char rasp;
+        int wagon = -1; // default
+        int seat = -1;
+        
         // ignorăm aici faptul că sunt vagoane diferite pt clasele 1 și 2
 
         // TODO: exception handling pt asta
         cout<<"Ce clasă doriți, 1 sau 2?"<<endl;
-        cin>>class;
+        cin>>ticket_class;
         if(cin.fail()){
             throw(-1);
             return;
         }
-        if((class!=1)&&(class!=2)){
+        if((ticket_class!=1)&&(ticket_class!=2)){
             throw(1);
             return;
         }
 
-        cout<<"La ce vagon doriți?"<<endl;
-        cin>>wagon;
+        cout<<"Doriți să rezervați și loc? (d/n)";
+        cin>>rasp;
         if(cin.fail()){
             throw(-1);
-            return;
-        }
-        if(wagon>12){ // asum aici maxim 12 vagoane
-            throw(1);
             return;
         }
 
-        cout<<"Ce loc doriți?"<<endl;
-        cin>>seat;
-        if(cin.fail()){
-            throw(-1);
-            return;
+        // dacă pun orice în afară de 'd', o să asume că nu
+        if(rasp == 'd'){
+            cout<<"La ce vagon doriți?"<<endl;
+            cin>>wagon;
+            if(cin.fail()){
+                throw(-1);
+                return;
+            }
+            if(wagon>12){ // asum aici maxim 12 vagoane
+                throw(1);
+                return;
+            }
+
+            cout<<"Ce loc doriți?"<<endl;
+            cin>>seat;
+            if(cin.fail()){
+                throw(-1);
+                return;
+            }
+            if((seat<0)||(seat>110)){ 
+                throw(1);
+                return;
+            }
         }
-        if((seat<0)||(seat>110)){ 
-            throw(1);
-            return;
-        }
+
+        // acum că avem biletul, putem să-l memorăm în fișier
+        vector<tuple<int,int,int>> ticket_list = get_ticket_list(ticket_file, username);
+
+        new_ticket = make_tuple(ticket_class, wagon, seat);
 
         
+        // adaugă la finalul fișierului lista de bilete a utilizatorului
+        ofstream ticket_output;
+        ticket_output.open(ticket_file, ios_base::app);
+        ticket_output<<get<0>(new_ticket)<<'-'<<get<1>(new_ticket)<<'-'<<get<2>(new_ticket)<<':';
+        ticket_output<<endl;
+
+        ticket_output.close();
     }
+    
+        
 };
 
 
@@ -580,6 +695,7 @@ int main(){
     //operator_test.remove_itinerary(2);
 
     User user_test = User();
-    user_test.show_trains();
+    //user_test.show_trains();
+    user_test.buy_ticket(1);
     return 0;
 }
