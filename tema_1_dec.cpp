@@ -7,6 +7,7 @@
 #include <utility>
 #include <sstream>
 #include <tuple>
+#include <ctime>
 using namespace std;
 
 // clasa pt a parsa inputul de text
@@ -295,9 +296,10 @@ vector<TrainItinerary> get_itinerary_list(string filename){
     return itinerary_arr;
 }
 
-vector<tuple<int,int,int>> get_ticket_list(string filename, string username){
-    vector<tuple<int,int,int>> output;
-    tuple<int,int,int> tuple_temp;
+// string pt data
+vector<tuple<int,int,int,string>> get_ticket_list(string filename, string username){
+    vector<tuple<int,int,int,string>> output;
+    tuple<int,int,int,string> tuple_temp;
     CSV_input input(filename);
     int user_found = 0;
 
@@ -316,7 +318,7 @@ vector<tuple<int,int,int>> get_ticket_list(string filename, string username){
             user_tickets_temp = input.elements[i];
 
             // acum avem lista de tupluri, pe care o putem adăuga
-            while(getline(user_string, element, ':')){
+            while(getline(user_string, element, ';')){
                 stringstream temp(element);
                 
                 getline(temp, tuple_number, '-');
@@ -327,7 +329,9 @@ vector<tuple<int,int,int>> get_ticket_list(string filename, string username){
 
                 getline(temp, tuple_number, '-');
                 get<2>(tuple_temp) = stoi(tuple_number);
-
+                
+                getline(temp, tuple_number, '-');
+                get<3>(tuple_temp) = stoi(tuple_number);
             }
 
             // programul va elimina stringul curent cu username-ul curent ca să-l adauge iarăși la final, în destructorul User-ului
@@ -443,7 +447,7 @@ class User{
     string ticket_file; // fișier separat pt biletele înregistrate
     
     vector<TrainItinerary> itinerary_arr;
-    vector<tuple<int,int,int>> ticket_arr; // primul int este id-ul trenului, al doilea este vagonul (default -1, dacă nu a optat pt asta), ai treilea este locul (default -1, idem)
+    vector<tuple<int,int,int,string>> ticket_arr; // primul int este id-ul trenului, al doilea este vagonul (default -1, dacă nu a optat pt asta), ai treilea este locul (default -1, idem)
 
     public:
 
@@ -517,7 +521,7 @@ class User{
     }
     
     void buy_ticket(int train_id){
-        tuple<int,int,int> new_ticket;
+        tuple<int,int,int,string> new_ticket;
         int ticket_class;
         char rasp;
         int wagon = -1; // default
@@ -570,15 +574,22 @@ class User{
         }
 
         // acum că avem biletul, putem să-l memorăm în fișier
-        vector<tuple<int,int,int>> ticket_list = get_ticket_list(ticket_file, username);
+        vector<tuple<int,int,int,string>> ticket_list = get_ticket_list(ticket_file, username);
 
-        new_ticket = make_tuple(ticket_class, wagon, seat);
+        // extracting current time
+        time_t timestamp;
+        time(&timestamp);
+        string time_string = string(ctime(&timestamp));
+        time_string = time_string.substr(0, time_string.length()-1);
 
-        
+        // aici puteam și fără tuplu, dar e mai comod să am toate componentele împreună
+        new_ticket = make_tuple(ticket_class, wagon, seat, time_string);
+
+
         // adaugă la finalul fișierului lista de bilete a utilizatorului
         ofstream ticket_output;
         ticket_output.open(ticket_file, ios_base::app);
-        ticket_output<<get<0>(new_ticket)<<'-'<<get<1>(new_ticket)<<'-'<<get<2>(new_ticket)<<':';
+        ticket_output<<get<0>(new_ticket)<<'-'<<get<1>(new_ticket)<<'-'<<get<2>(new_ticket)<<'-'<<get<3>(new_ticket)<<';';
         ticket_output<<endl;
 
         ticket_output.close();
