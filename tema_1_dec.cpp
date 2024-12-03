@@ -8,6 +8,7 @@
 #include <sstream>
 #include <tuple>
 #include <ctime>
+#include <map>
 using namespace std;
 
 // clasa pt a parsa inputul de text
@@ -356,7 +357,47 @@ vector<tuple<int,int,int,string>> get_ticket_list(string filename, string userna
     return output;
 }
 
-// clasa operator
+// ----------------------------------------------------------------------------
+//                   Clasa de Login
+// ----------------------------------------------------------------------------
+class Login{
+    // cum atât Operatorul, cât și utilizatorul, se loghează în același fel, folosesc amândoi aceeași clasă de Login
+    // (iarăși, ar fi fost bine să fi făcut o clasă de User care să fie moștenită de ambele, dar n-am avut timp să fac refactoring)
+
+    private:
+    
+    // numele fișierului din care sunt extrase datele
+    string filename;
+    map<string,string> login_map; // map care o să stocheze perechi email-parolă
+    // cheia de la codul vigenere o să fie unică, cum oricum o să hashuiesc parolele
+
+    void obtain_list(string filename){
+        CSV_input input(filename);
+
+        for(int i=0; i<input.elements.size(); i++){
+           
+            int pos = input.elements[i].find_first_of(',');
+            login_map.insert(pair<string,string>(input.elements[i].substr(0, pos),input.elements[i].substr(pos+1))); // adăugăm perechea username-parolă în hashmap       
+        }
+
+        for(const auto& elem : login_map){
+          std::cout << elem.first << " " << elem.second << "\n";
+        }
+    }
+    
+    public:
+
+    Login(string filename_in){
+        filename = filename_in;
+
+        obtain_list(filename);
+    }
+};
+
+
+// ----------------------------------------------------------------------------
+//                   Clasa de Operator
+// ----------------------------------------------------------------------------
 // TODO: alg de autentificare
 class Operator{
     private:
@@ -585,7 +626,7 @@ class User{
         // aici puteam și fără tuplu, dar e mai comod să am toate componentele împreună
         new_ticket = make_tuple(ticket_class, wagon, seat, time_string);
 
-
+        // TODO: să vezi dacă locurile alese sunt valide și să adaug locurile alea la train-itinerary (would be nice)
         // adaugă la finalul fișierului lista de bilete a utilizatorului
         ofstream ticket_output;
         ticket_output.open(ticket_file, ios_base::app);
@@ -705,8 +746,11 @@ int main(){
     //operator_test.add_itinerary();
     //operator_test.remove_itinerary(2);
 
-    User user_test = User();
+   // User user_test = User();
     //user_test.show_trains();
-    user_test.buy_ticket(1);
+    //user_test.buy_ticket(1);
+
+    Login login_test("user_list.csv");
+
     return 0;
 }
