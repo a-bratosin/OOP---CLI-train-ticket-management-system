@@ -477,7 +477,7 @@ class Login{
         obtain_list(filename);
     }
 
-    void register_user(){
+    string register_user(){
         string username_temp, password_temp, password_check_temp;  
         // important: adresa nu poate avea , din cauza CSV-ului
         const string regex_string = R"([a-zA-Z0-9_.]+@[a-zA-z0-9]+.[a-zA-Z]+)";
@@ -514,6 +514,8 @@ class Login{
         //TODO: prostia aia cu vigenere
         string pass_stored = sha256(password_temp);
         CSV_input(filename).write_line(string("\n")+username_temp+string(",")+pass_stored); //fac string() ca să pot folosi operatorul overloaded +
+
+        return username_temp;
     }
 
     string login_user(){
@@ -555,6 +557,7 @@ class Operator{
     // string care conține numele fișierului de input/output
     string itinerary_file;
     vector<TrainItinerary> itinerary_arr;
+    string accounts_file;
 
     public:
 
@@ -566,8 +569,22 @@ class Operator{
         // ATENTIE: aici ar putea să meargă prost dacă VSCode nu deschide fișierul cu executabilul
         // dacă se deschide din alt fișier mai sus în ierarhie, nu citește bine
         itinerary_file = "train_itinerary.csv";
-
+        accounts_file = "operator_list.csv";
         itinerary_arr = get_itinerary_list(itinerary_file);
+
+
+        Login account_login(accounts_file);
+        char user_selection='z';
+        cout<<"1) Înregistrare\n"<<"2) Logare"<<endl;
+        while(user_selection!='1'&&user_selection!='2'){
+            cin>>user_selection;
+        }
+
+        if(user_selection=='1'){
+            username = account_login.register_user();
+        }else if(user_selection=='2'){
+            username = account_login.login_user();
+        }
     }
 
     // toate operațiilor asupra listelor de curse am să le fac în vectorul itinerary_arr
@@ -632,6 +649,7 @@ class User{
     // string care conține numele fișierului de input/output
     string itinerary_file; 
     string ticket_file; // fișier separat pt biletele înregistrate
+    string accounts_file;
     
     vector<TrainItinerary> itinerary_arr;
     vector<tuple<int,int,int,string>> ticket_arr; // primul int este id-ul trenului, al doilea este vagonul (default -1, dacă nu a optat pt asta), ai treilea este locul (default -1, idem)
@@ -646,13 +664,28 @@ class User{
         // ATENTIE: aici ar putea să meargă prost dacă VSCode nu deschide fișierul cu executabilul
         // dacă se deschide din alt fișier mai sus în ierarhie, nu citește bine
 
-        username = "example@domain.com";
+        //username = "example@domain.com";
 
         itinerary_file = "train_itinerary.csv";
         ticket_file = "user_tickets.csv";
+        accounts_file = "user_list.csv";
 
         itinerary_arr = get_itinerary_list(itinerary_file);
         ticket_arr = get_ticket_list(ticket_file, username);
+
+
+        Login account_login(accounts_file);
+        char user_selection='z';
+        cout<<"1) Înregistrare\n"<<"2) Logare"<<endl;
+        while(user_selection!='1'&&user_selection!='2'){
+            cin>>user_selection;
+        }
+
+        if(user_selection=='1'){
+            username = account_login.register_user();
+        }else if(user_selection=='2'){
+            username = account_login.login_user();
+        }
     }
     
     // dacă era să permit să se logheze mai mulți utilizatori/operatori în aceeași sesiune, aș face o funcție separată de write_changes()
@@ -788,47 +821,15 @@ class User{
 
 int main(){
     
-    //int test = password_strength("Pecarenucare2212");
-    
-    /*
-    int id = 1; //trb să găsesc mod de a genera ID
-    string sursa = "București";
-    string destinație = "Iași";
-    vector<string> statii = {"București", "Focșani", "Iași"};
-    string ora_plecare = "11:40";
-    string ora_sosire = "15:00";
-    string zi_plecare = "30/11/2024";
-    string zi_sosire = "30/11/2024";
-    
-    vector<pair<int, int>> locuri_luate;
-    locuri_luate.push_back(make_pair(4,47));
-    locuri_luate.push_back(make_pair(5,31));
-    locuri_luate.push_back(make_pair(1,63));
-
-    TrainItinerary test(id,sursa,destinație,statii,ora_plecare,ora_sosire,zi_plecare,zi_sosire,locuri_luate);
-    string test_string = test.write_to_line();
-    cout<<test_string<<endl;
-    
-    TrainItinerary function_test = itinerary_from_string(test_string);
-    cout<<function_test.write_to_line()<<endl;
-    
-    // ok programul nu dă crash dacă încerci să deschizi un fișier gol, asta e bine
-    //Operator operator_test = Operator();
-    //operator_test.add_itinerary();
-    //operator_test.remove_itinerary(2);
-
-   // User user_test = User();
-    //user_test.show_trains();
-    //user_test.buy_ticket(1);
-
-    Login login_test("user_list.csv");
-    //login_test.register_user();
-    */
-   
+   /*
     try{
+        Login login_test("user_list.csv");
         login_test.login_user();
     }catch(...){
         cout<<"restul operațiilor nu pot fi realizate!"<<endl;
     }
     return 0;
+    */
+   //User test_user;
+   Operator test_operator;
 }
