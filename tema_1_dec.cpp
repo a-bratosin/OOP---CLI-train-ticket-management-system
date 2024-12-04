@@ -12,6 +12,7 @@
 #include "sha256.h"
 using namespace std;
 
+const string vigenere_key = "p0oru1e5";
 
 // ----------------------------------------------------------------------------
 //                   Algoritm pt verificarea parolei
@@ -56,6 +57,36 @@ void pass_strength_factors(string password){
     
 }
 
+string vigenere(string password, string key) {
+    const int n = password.size(), k = key.size();
+
+    for (int i = 0; i < n; i++) {
+        const int delta = key[i % k] - (isdigit(key[i % k]) ? '0' : ('a'-1));
+        // convertesc charul în int pt a preveni un overflow
+        int c = password[i]; 
+
+        if (isdigit(c)) {
+            c += delta;
+            while (c > '9')
+                c -= 10;
+        } else {
+            if (islower(c)) {
+                c += delta;
+                if (c > 'z')
+                    c -= 26; //scad așa în loc să fac modul din cauza poziționării caracterului în tabela ascii
+                    // alternativ, aș fi putut face (c-'a')%26 pt același rezultat
+            } else {
+                c += delta;
+                if (c > 'Z') //idem
+                    c -= 26;
+            }
+        }
+
+        password[i] = c;
+    }
+
+    return password;
+}
 /*
     output-ul funcției
 
@@ -574,6 +605,7 @@ class Login{
         SHA256 sha256;
         //TODO: prostia aia cu vigenere
         string pass_stored = sha256(password_temp);
+        pass_stored = vigenere(pass_stored, vigenere_key);
         CSV_input(filename).write_line(string("\n")+username_temp+string(",")+pass_stored); //fac string() ca să pot folosi operatorul overloaded +
 
         return username_temp;
@@ -895,7 +927,7 @@ int main(){
    //User test_user;
     char selection_char;
     while(selection_char!='c'&&selection_char!='o'){
-        cout<<"Doriți să folosiți programul ca și călălor, sau ca și operator? (c - călător, o - operator)"<<endl;
+        cout<<"Doriți să folosiți programul ca și călător, sau ca și operator? (c - călător, o - operator)"<<endl;
         cin>>selection_char;
     }
 
