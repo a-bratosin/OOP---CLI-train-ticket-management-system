@@ -9,7 +9,84 @@
 #include <tuple>
 #include <ctime>
 #include <map>
+#include "sha256.h"
 using namespace std;
+
+
+// ----------------------------------------------------------------------------
+//                   Algoritm pt verificarea parolei
+// ----------------------------------------------------------------------------
+void pass_strength_factors(string password){
+
+    if(password.length()<12){
+        throw((string)"Parola este prea scurtă! (min 12 caractere)");
+    }    
+    string test = password.c_str();
+
+    // Convert every character of string to
+    // uppercase using toupper() method
+    for (int i = 0; i < test.length(); i++)
+        test[i] = toupper(test[i]);
+
+    if(test==password){
+        // trebuie să fac aici type conversion; altfel, îl percepe ca fiind doar const char
+        throw((string)"Parola nu conține caractere lowercase");
+    }
+    
+    test = password;
+    for (int i = 0; i < test.length(); i++)
+        test[i] = tolower(test[i]);
+
+    if(test==password){
+        // trebuie să fac aici type conversion; altfel, îl percepe ca fiind doar const char
+        throw((string)"Parola nu conține caractere uppercase");
+    }
+
+    //pt caractere speciale și numere o să fac regex (puteam pt toate să fac regex, dar *cred* că e cv mai rapid așa pt lowercase și suppercase)
+    regex num_regex("[0-9]+");
+    if(!regex_search(password, num_regex)){
+        throw(-1);
+    }
+    
+    // a trebuit să scot câteva caractere speciale ptc nu se potriveau cu parse-uriea de stringuri nativă c++
+    regex special_regex("[!@#$%^&*()_=+{};:<>,./?]+");
+    if(!regex_search(password, special_regex)){
+        throw(1);
+    }
+    
+}
+
+/*
+    output-ul funcției
+
+    -1 - parolă slabă - dacă parola are mai puțin de 12 caractere și/sau nu are caractere mici și/sau nu are caractere mari
+     0 - parolă medie - dacă parola nu e slabă, dar nu are c.p. o cifră sau un caracter special
+     1 - parolă bună - îndeplinește toate condițiile menționate anterior
+
+    am stabilit ca verificările pt cifră și caracter să returneze excepții prin int pt a le putea grupa diferit
+*/
+int password_strength(string password){
+    try{
+        pass_strength_factors(password);
+    }
+    catch(string error){
+        cout<<error<<endl;
+        return -1;
+    }
+    catch(int error_code){
+        if(error_code==-1){
+            cout<<"Parola nu conține nicio cifră!"<<endl;
+        }else{
+            cout<<"Parola nu conține niciun caracter special!"<<endl;
+        }
+
+        return 0;
+    }catch(...){
+        cout<<"Eroare neprevăzută. Încercați să vă înregistrați încă odată."<<endl;
+        return -1;
+    }
+    return 1;
+}
 
 // clasa pt a parsa inputul de text
 // preia numele fișierului și stochează liniile .csv-ului într-un vector de string
@@ -380,9 +457,16 @@ class Login{
             login_map.insert(pair<string,string>(input.elements[i].substr(0, pos),input.elements[i].substr(pos+1))); // adăugăm perechea username-parolă în hashmap       
         }
 
-        for(const auto& elem : login_map){
-          std::cout << elem.first << " " << elem.second << "\n";
-        }
+        //for(const auto& elem : login_map){
+        //    std::cout << elem.first << " " << elem.second << "\n";
+        //}
+    }
+
+    void append_list(string username, string password){
+        string to_output = username+','+password;
+        CSV_input input(filename);
+
+        input.write_line(to_output);
     }
     
     public:
@@ -391,6 +475,68 @@ class Login{
         filename = filename_in;
 
         obtain_list(filename);
+    }
+
+    void register_user(){
+        string username_temp, password_temp, password_check_temp;  
+        // important: adresa nu poate avea , din cauza CSV-ului
+        const string regex_string = R"([a-zA-Z0-9_.]+@[a-zA-z0-9]+.[a-zA-Z]+)";
+        const regex email_regex(regex_string);
+        
+        cout<<"Introduceți adresa de email: "<<endl;
+        cin>>username_temp;
+        if(login_map.find(username_temp) != login_map.end()){ //cond îndeplinită dacă adresa este în map
+            cout<<"Deja este înregistrat un cont cu această adresă!"<<endl;
+            throw(1);
+        }
+        // acum verific dacă stringul dat este o adresă de email validă cu un regex
+        if(!regex_match(username_temp, email_regex)){
+            //cout<<username_temp<<'|'<<regex_match(username_temp, email_regex)<<endl;
+            cout<<"Adresa furnizată nu este validă!"<<endl;
+            throw(2);
+        }
+
+        cout<<"Introduceți noua parolă:"<<endl;
+        cin>>password_temp;
+        if(password_strength(password_temp)!=1){
+            cout<<"Înregistrarea nu a putut fi făcută!"<<endl;
+            throw(3);
+        }
+        
+        cout<<"Introduceți iarăși noua parolă"<<endl;
+        cin>>password_check_temp;
+        if(password_temp!=password_check_temp){
+            cout<<"Parolele date nu sunt identice!"<<endl;
+            throw(4);
+        }
+        
+        SHA256 sha256;
+        //TODO: prostia aia cu vigenere
+        string pass_stored = sha256(password_temp);
+        CSV_input(filename).write_line(string("\n")+username_temp+string(",")+pass_stored); //fac string() ca să pot folosi operatorul overloaded +
+    }
+
+    string login_user(){
+        string username_temp, password_temp;
+
+        cout<<"Introduceți adresa de email:"<<endl;
+        cin>>username_temp;
+        if(login_map.find(username_temp) == login_map.end()){ //cond îndeplinită utilizatorul cu ac adresă nu este înregistrat
+            cout<<"Nu există niciun cont cu această adresă de email! "<<endl;
+            throw(1);
+        }
+
+        cout<<"Introduceți parola:"<<endl;
+        cin>>password_temp;
+
+        SHA256 sha256;
+        string password_hash = sha256(password_temp);
+        if (login_map[username_temp]!=password_hash){
+            cout<<"Parola introdusă este greșită!"<<endl;
+            throw(2);
+        }
+
+        return username_temp;
     }
 };
 
@@ -640,86 +786,11 @@ class User{
 };
 
 
-// ----------------------------------------------------------------------------
-//                   Algoritm pt verificarea parolei
-// ----------------------------------------------------------------------------
-void pass_strength_factors(string password){
-
-    if(password.length()<12){
-        throw((string)"Parola este prea scurtă! (min 12 caractere)");
-    }    
-    string test = password.c_str();
-
-    // Convert every character of string to
-    // uppercase using toupper() method
-    for (int i = 0; i < test.length(); i++)
-        test[i] = toupper(test[i]);
-
-    if(test==password){
-        // trebuie să fac aici type conversion; altfel, îl percepe ca fiind doar const char
-        throw((string)"Parola nu conține caractere lowercase");
-    }
-    
-    test = password;
-    for (int i = 0; i < test.length(); i++)
-        test[i] = tolower(test[i]);
-
-    if(test==password){
-        // trebuie să fac aici type conversion; altfel, îl percepe ca fiind doar const char
-        throw((string)"Parola nu conține caractere uppercase");
-    }
-
-    //pt caractere speciale și numere o să fac regex (puteam pt toate să fac regex, dar *cred* că e cv mai rapid așa pt lowercase și suppercase)
-    regex num_regex("[0-9]+");
-    if(!regex_search(password, num_regex)){
-        throw(-1);
-    }
-    
-    // a trebuit să scot câteva caractere speciale ptc nu se potriveau cu parse-uriea de stringuri nativă c++
-    regex special_regex("[!@#$%^&*()_=+{};:<>,./?]+");
-    if(!regex_search(password, special_regex)){
-        throw(1);
-    }
-    
-}
-
-/*
-    output-ul funcției
-
-    -1 - parolă slabă - dacă parola are mai puțin de 12 caractere și/sau nu are caractere mici și/sau nu are caractere mari
-     0 - parolă medie - dacă parola nu e slabă, dar nu are c.p. o cifră sau un caracter special
-     1 - parolă bună - îndeplinește toate condițiile menționate anterior
-
-    am stabilit ca verificările pt cifră și caracter să returneze excepții prin int pt a le putea grupa diferit
-*/
-int password_strength(string password){
-    try{
-        pass_strength_factors(password);
-    }
-    catch(string error){
-        cout<<error<<endl;
-        return -1;
-    }
-    catch(int error_code){
-        if(error_code==-1){
-            cout<<"Parola nu conține nicio cifră!"<<endl;
-        }else{
-            cout<<"Parola nu conține niciun caracter special!"<<endl;
-        }
-
-        return 0;
-    }catch(...){
-        cout<<"Eroare neprevăzută. Încercați să vă înregistrați încă odată."<<endl;
-        return -1;
-    }
-    return 1;
-}
-
-
 int main(){
     
     //int test = password_strength("Pecarenucare2212");
     
+    /*
     int id = 1; //trb să găsesc mod de a genera ID
     string sursa = "București";
     string destinație = "Iași";
@@ -751,6 +822,13 @@ int main(){
     //user_test.buy_ticket(1);
 
     Login login_test("user_list.csv");
-
+    //login_test.register_user();
+    */
+   
+    try{
+        login_test.login_user();
+    }catch(...){
+        cout<<"restul operațiilor nu pot fi realizate!"<<endl;
+    }
     return 0;
 }
