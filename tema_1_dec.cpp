@@ -102,14 +102,14 @@ class CSV_input{
 
     CSV_input(string filename){
         ifstream fin(filename);
-        cout<<filename<<endl;
+        //cout<<filename<<endl;
         //fin.open(filename, ios::in);
         
         in_filename = filename;
         string line;
 
         if(fin.is_open()){
-            cout<<"open"<<endl;
+           // cout<<"open"<<endl;
             while(getline(fin, line)){
                 elements.push_back(line);
             }
@@ -129,7 +129,7 @@ class CSV_input{
 
     // dacă vrem să schimbăm cv în CSV în mod direct, putem face direct din funcția asta
     void write_to_file(){
-        cout<<"filename test "<<in_filename<<endl;
+        //cout<<"filename test "<<in_filename<<endl;
         ofstream fout(in_filename);
 
         for(int i=0; i<elements.size(); i++){
@@ -324,7 +324,7 @@ TrainItinerary itinerary_from_string(string input){
     
     stringstream s_temp(element_attribute);
     while(getline(s_temp, temp_attribute, '-')){
-        cout<<temp_attribute<<endl;
+        //cout<<temp_attribute<<endl;
         stations_temp.push_back(temp_attribute);
     }
 
@@ -346,7 +346,7 @@ TrainItinerary itinerary_from_string(string input){
         string first_num = temp_attribute.substr(0, temp_attribute.find('.'));
         string second_num = temp_attribute.substr(temp_attribute.find('.')+1);
         pair<int,int> temp_pair = make_pair(stoi(first_num), stoi(second_num));
-        cout<<temp_pair.first<<" "<<temp_pair.second<<endl;
+        //cout<<temp_pair.first<<" "<<temp_pair.second<<endl;
         seats_taken_temp.push_back(temp_pair);
     }
     
@@ -388,10 +388,10 @@ vector<tuple<int,int,int,string>> get_ticket_list(string filename, string userna
         stringstream user_string(input.elements[i]);
         getline(user_string, element, ',');
 
-        cout<<"test get_ticket_list: "<<element<<endl;
+        //cout<<"test get_ticket_list: "<<element<<endl;
         if(username==element){
             user_found = 1;
-            cout<<"matched"<<endl;
+            //cout<<"matched"<<endl;
             getline(user_string, element, ',');
             user_tickets_temp = input.elements[i];
 
@@ -415,21 +415,25 @@ vector<tuple<int,int,int,string>> get_ticket_list(string filename, string userna
             // programul va elimina stringul curent cu username-ul curent ca să-l adauge iarăși la final, în destructorul User-ului
             input.elements.erase(input.elements.begin()+i);
 
-            cout<<"test stergere"<<endl;
-            for(int i=0; i<input.elements.size(); i++){
-                cout<<input.elements[i]<<endl;
-            }
+            //cout<<"test stergere"<<endl;
+            //for(int i=0; i<input.elements.size(); i++){
+            //    cout<<input.elements[i]<<endl;
+            //}
             input.write_to_file();
             input.write_line(user_tickets_temp);
 
             break;
         }
     }
-
+    
+    
     if(!user_found){
-        cout<<"Utilizator nou; trebuie adăugat în CSV"<<endl;
-
+        cout<<"Utilizator nou; adăugat în CSV"<<endl;
+        ofstream ticket_output;
+        ticket_output.open(filename, ios_base::app);
+        ticket_output<<string(username+",");
     }
+    
 
     return output;
 }
@@ -671,7 +675,7 @@ class User{
         accounts_file = "user_list.csv";
 
         itinerary_arr = get_itinerary_list(itinerary_file);
-        ticket_arr = get_ticket_list(ticket_file, username);
+        //ticket_arr = get_ticket_list(ticket_file, username);
 
 
         Login account_login(accounts_file);
@@ -806,6 +810,7 @@ class User{
         new_ticket = make_tuple(ticket_class, wagon, seat, time_string);
 
         // TODO: să vezi dacă locurile alese sunt valide și să adaug locurile alea la train-itinerary (would be nice)
+
         // adaugă la finalul fișierului lista de bilete a utilizatorului
         ofstream ticket_output;
         ticket_output.open(ticket_file, ios_base::app);
@@ -831,5 +836,89 @@ int main(){
     return 0;
     */
    //User test_user;
-   Operator test_operator;
+    char selection_char;
+    while(selection_char!='c'&&selection_char!='o'){
+        cout<<"Doriți să folosiți programul ca și călălor, sau ca și operator? (c - călător, o - operator)"<<endl;
+        cin>>selection_char;
+    }
+
+    // TODO: catch exception
+    if(selection_char=='c'){
+        User session_user;
+        selection_char='z';
+        while(selection_char!='1'&&selection_char!='2'){
+            cout<<"Selectați operația dorită: (1 - căutare cursă; 2 - rezervare bilet)"<<endl;
+            cin>>selection_char;
+        }
+        
+        if(selection_char=='1'){
+            session_user.show_trains();
+        }else if(selection_char=='2'){
+
+            // în implementarea mea, evit puțin problema detaliilor introduse greșit, cum utilizatorul îți rezervă bilet în funcție de ID
+
+            int train_id=0;
+            cout<<"Introduceți ID-ul cursei dorite"<<endl;
+            cin>>train_id;
+
+            string temp_in;
+            while(train_id==0){
+                //cin.ignore();
+                //cin.clear();
+                cout<<"Textul introdus nu este un ID valid!\n";
+                cout<<"Introduceți un ID:\n";
+                cin>>temp_in;
+                
+                cin.clear();
+                try{
+                    train_id = stoi(temp_in);
+                }catch(invalid_argument err){
+                    cin.clear();
+                    continue;
+                }
+                
+            }
+
+            session_user.buy_ticket(train_id);
+        }
+
+    }else if(selection_char=='o'){
+        Operator session_operator;
+        selection_char='z';
+        while(selection_char!='1'&&selection_char!='2'){
+            cout<<"Selectați operația dorită: (1 - adăugare cursă; 2 - ștergere cursă)"<<endl;
+            cin>>selection_char;
+        }
+
+        if(selection_char=='1'){
+            session_operator.add_itinerary();
+        }else if(selection_char=='2'){
+            
+            int train_id=0;
+            cout<<"Introduceți ID-ul cursei de șters: "<<endl;
+            cin>>train_id;
+
+            string temp_in;
+            while(train_id==0){
+                //cin.ignore();
+                //cin.clear();
+                cout<<"Textul introdus nu este un ID valid!\n";
+                cout<<"Introduceți un ID:\n";
+                cin>>temp_in;
+                
+                cin.clear();
+                try{
+                    train_id = stoi(temp_in);
+                }catch(invalid_argument err){
+                    cin.clear();
+                    continue;
+                }
+                
+            }
+
+            session_operator.remove_itinerary(train_id);
+        }
+    }
+
+    return 0;
 }
