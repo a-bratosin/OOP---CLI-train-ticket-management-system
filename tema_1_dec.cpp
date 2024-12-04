@@ -237,6 +237,13 @@ class TrainItinerary{
 
 int TrainItinerary::global_id = 1;
 
+// checks that a string can be used as a station name (only a-z, A-Z and spaces)
+void check_string(string input){
+    regex text_regex(R"([a-zA-Z ]+)");
+    if(!regex_match(input, text_regex)){
+        throw(-1);
+    }
+}
 // funcție fără argumente, cu introducerea datelor de la tastatură
 // (puteam să o fac constructor)
 TrainItinerary itinerary_from_keyboard(){
@@ -254,8 +261,10 @@ TrainItinerary itinerary_from_keyboard(){
 
     cout<<"Introduceți stația din care pleacă cursa: "<<endl;
     cin>>source_temp;
+    check_string(source_temp); //puțin dubios, cum ar cam trb să bag restul funcției în try-catch
     cout<<"Introduceți stația la care ajunge"<<endl;
     cin>>destination_temp;
+    check_string(destination_temp);
     stations_temp.push_back(source_temp);
     
     // TODO: funcție pt a verifica dacă textul este valid (dacă e doar ASCII, nu caractere UTF)
@@ -264,8 +273,15 @@ TrainItinerary itinerary_from_keyboard(){
     string intermediary_station_temp;
     for(int i=1; i<=number_stations; i++){
         cout<<"Introduceți stația #"<<i<<endl;
-        cin>>intermediary_station_temp;
-        stations_temp.push_back(intermediary_station_temp);
+        try{
+            cin>>intermediary_station_temp;
+            stations_temp.push_back(intermediary_station_temp);
+            check_string(intermediary_station_temp);
+        }catch(int err){
+            cout<<"Numele stației #"<<i<<" conține caractere invalide (probabil diacritice)"<<endl;
+            throw(err);
+        }
+        
     }
     stations_temp.push_back(destination_temp);
 
@@ -491,27 +507,27 @@ class Login{
         cin>>username_temp;
         if(login_map.find(username_temp) != login_map.end()){ //cond îndeplinită dacă adresa este în map
             cout<<"Deja este înregistrat un cont cu această adresă!"<<endl;
-            throw(1);
+            throw(2);
         }
         // acum verific dacă stringul dat este o adresă de email validă cu un regex
         if(!regex_match(username_temp, email_regex)){
             //cout<<username_temp<<'|'<<regex_match(username_temp, email_regex)<<endl;
             cout<<"Adresa furnizată nu este validă!"<<endl;
-            throw(2);
+            throw(3);
         }
 
         cout<<"Introduceți noua parolă:"<<endl;
         cin>>password_temp;
         if(password_strength(password_temp)!=1){
-            cout<<"Înregistrarea nu a putut fi făcută!"<<endl;
-            throw(3);
+            //cout<<"Înregistrarea nu a putut fi făcută!"<<endl;
+            throw(4);
         }
         
         cout<<"Introduceți iarăși noua parolă"<<endl;
         cin>>password_check_temp;
         if(password_temp!=password_check_temp){
             cout<<"Parolele date nu sunt identice!"<<endl;
-            throw(4);
+            throw(5);
         }
         
         SHA256 sha256;
@@ -539,7 +555,7 @@ class Login{
         string password_hash = sha256(password_temp);
         if (login_map[username_temp]!=password_hash){
             cout<<"Parola introdusă este greșită!"<<endl;
-            throw(2);
+            throw(1);
         }
 
         return username_temp;
@@ -844,7 +860,10 @@ int main(){
 
     // TODO: catch exception
     if(selection_char=='c'){
-        User session_user;
+        try{
+            User session_user;
+       
+        
         selection_char='z';
         while(selection_char!='1'&&selection_char!='2'){
             cout<<"Selectați operația dorită: (1 - căutare cursă; 2 - rezervare bilet)"<<endl;
@@ -882,7 +901,18 @@ int main(){
             session_user.buy_ticket(train_id);
         }
 
+        }catch(int err){
+            if(err==1){
+                cout<<"Autentificare nereușită!"<<endl;
+                
+            }else{
+                cout<<"Înregistrare nereușită!"<<endl;
+            }
+            return 0;
+        }
     }else if(selection_char=='o'){
+        try{ //aici am lăsat pt indentare ptc ar fi prea mult whitespace imo
+
         Operator session_operator;
         selection_char='z';
         while(selection_char!='1'&&selection_char!='2'){
@@ -891,7 +921,16 @@ int main(){
         }
 
         if(selection_char=='1'){
-            session_operator.add_itinerary();
+            try{
+                session_operator.add_itinerary();
+            }catch(int err){
+                if(err==-1){
+                    cout<<"Caractere invalide!"<<endl;
+                }
+                cout<<"Cursa nu a putut fi adăugată!"<<endl;
+                return 0;
+            }
+            
         }else if(selection_char=='2'){
             
             int train_id=0;
@@ -917,6 +956,15 @@ int main(){
             }
 
             session_operator.remove_itinerary(train_id);
+        }
+         }catch(int err){
+            if(err==1){
+                cout<<"Autentificare nereușită!"<<endl;
+                
+            }else{
+                cout<<"Înregistrare nereușită!"<<endl;
+            }
+            return 0;
         }
     }
 
