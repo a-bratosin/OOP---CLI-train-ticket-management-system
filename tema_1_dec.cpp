@@ -244,6 +244,39 @@ void check_string(string input){
         throw(-1);
     }
 }
+
+void check_time_format(string date, string train_time){
+    regex date_regex(R"(([0-3]|)[0-9]\/(|[012])[0-9]\/2[0-9][0-9][0-9])");
+    regex time_regex(R"([0-2][0-9]:[0-5][0-9])");
+    if((!regex_match(date, date_regex))||(!regex_match(train_time,time_regex))){
+        throw(3);
+    }
+
+    time_t now;
+    struct tm * cur_date;
+
+    time(&now);
+    cur_date = localtime(&now);
+    string train_year, train_month, train_day;
+    
+    stringstream s_date(date);
+    getline(s_date, train_day, '/');
+    getline(s_date, train_month, '/');
+    getline(s_date, train_year, '/');
+
+    //cout<<train_day<<" "<<train_month<<" "<<train_year<<endl;
+    if(stoi(train_year)<cur_date->tm_year+1900){
+        cout<<"Călătoria cerută este în trecut!"<<endl;
+        throw(4);
+    }else if(stoi(train_month)<cur_date->tm_mon+1){
+        cout<<"Călătoria cerută este în trecut!"<<endl;
+        throw(4);
+    }else if(stoi(train_day)<cur_date->tm_mday){
+        cout<<"Călătoria cerută este în trecut!"<<endl;
+        throw(4);
+    }
+
+}
 // funcție fără argumente, cu introducerea datelor de la tastatură
 // (puteam să o fac constructor)
 TrainItinerary itinerary_from_keyboard(){
@@ -286,14 +319,22 @@ TrainItinerary itinerary_from_keyboard(){
     stations_temp.push_back(destination_temp);
 
     // TODO: verificarea orei/zilei de plecare (să fie după ora/ziua curentă)
-    cout<<"Introduceți ora de plecare: "<<endl;
-    cin>>departure_time_temp;
-    cout<<"Introduceți ziua plecării: "<<endl;
-    cin>>departure_day_temp;
-    cout<<"Introduceți ora de sosire: "<<endl;
-    cin>>arrival_time_temp;
-    cout<<"Introduceți ziua sosirii: "<<endl;
-    cin>>arrival_day_temp;
+    try{
+        cout<<"Introduceți ora de plecare: "<<endl;
+        cin>>departure_time_temp;
+        cout<<"Introduceți ziua plecării: "<<endl;
+        cin>>departure_day_temp;
+        check_time_format(departure_day_temp, departure_time_temp);
+        cout<<"Introduceți ora de sosire: "<<endl;
+        cin>>arrival_time_temp;
+        cout<<"Introduceți ziua sosirii: "<<endl;
+        cin>>arrival_day_temp;
+        check_time_format(arrival_day_temp, arrival_time_temp);
+    }catch(int err){
+        cout<<"Data și timpul nu sunt bine formatate!"<<endl;
+        throw(err);
+    }
+    
 
     // aici am să sper că îmi merge programul dacă vectorul seats_taken_temp e gol
     // dacă nu, atunci o să pun o pereche (-1,-1) fictivă
