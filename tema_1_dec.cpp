@@ -626,6 +626,9 @@ class Login{
 
         SHA256 sha256;
         string password_hash = sha256(password_temp);
+
+        password_hash = vigenere(password_hash, vigenere key);
+        
         if (login_map[username_temp]!=password_hash){
             cout<<"Parola introdusă este greșită!"<<endl;
             throw(1);
