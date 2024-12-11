@@ -10,7 +10,48 @@ import java.util.UUID
 
 // diferențe dintre versiunea de C++ și cea de Kotlin
 // În loc de "Introduceți numărul de locuri disponibile:" am pus "Introduceți numărul de locuri ocupate:", cum trebuia
+// Am modificat funcționalitatea de verificare a parolei, permițând introducerea de parole medii, fără caractere speciale
 
+
+class WeakPasswordException(error_message: String): Exception(error_message)
+class MediumPasswordException(error_message: String): Exception(error_message)
+fun password_strength_factors(password: String){
+    if(password.length<12){
+        throw(WeakPasswordException("Parola este prea scurtă!"))
+    }
+
+    if(password==password.lowercase()){
+        throw(WeakPasswordException("Parola nu conține majuscule!"))
+    }
+
+    if(password==password.uppercase()){
+        throw(WeakPasswordException("Parola nu conține litere mici!"))
+    }
+
+    val num_regex = ".*[0-9].*".toRegex()
+    if(!num_regex.matches(password)){
+        throw(WeakPasswordException("Parola nu conține cifre!"))
+    }
+
+    val character_regex = "[!@#$%^&*()_=+{};:<>,./?]+".toRegex()
+    if(!character_regex.matches(password)){
+        throw(MediumPasswordException("Warning: Parola ar trebui să conțină și caractere speciale."))
+    }
+}
+
+fun password_strength(password: String): Int{
+    try{
+        password_strength_factors(password)
+    }catch(except: WeakPasswordException){
+        println(except.message)
+        return -1
+    }catch(except:MediumPasswordException){
+        println(except.message)
+        return 0
+    }
+
+    return 1;
+}
 
 // idee proastă, dar e mult mai incomod cu UUID
 object GlobalId {
