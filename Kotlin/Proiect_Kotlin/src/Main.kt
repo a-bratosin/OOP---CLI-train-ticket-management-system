@@ -2,7 +2,10 @@
 import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.FileOutputStream
+import java.time.LocalDateTime
+import java.text.SimpleDateFormat
 import java.nio.file.Paths
+import java.time.LocalDate
 import java.util.UUID
 
 // În principiu, țin să păstrez codul de Kotlin echivalent cu cel din C++, ceea ce înseamnă că structura și funcționalitatea este cam 90% la fel (chiar și funcționalitatea proastă!)
@@ -217,6 +220,49 @@ fun get_itinerary_list(filename: String): MutableList<TrainItinerary>{
 
     return itinerary_arr
 }
+
+
+// în loc de tuple, (trebuie să) creez un data class
+data class TicketData(var ticket_class: Int, var ticket_wagon: Int = -1, var ticket_seat: Int = -1, var ticket_time: String)
+fun get_ticket_list(filename: String, username:String): MutableList<TicketData>{
+    var output = mutableListOf<TicketData>()
+    var ticket_temp: TicketData
+    var input = CSVInput(filename)
+    var user_found: Boolean = false
+
+    //var (element, tuple_number, user_tickets_temp: String
+    for(i in 0..<input.elements.size){
+        var (username_temp, user_tickets_temp) = input.elements[i].split(",", limit=2)
+
+        if(username_temp==username){
+            user_found = true
+
+            val found_element = input.elements[i]
+
+            var tickets_string_list = user_tickets_temp.split(";")
+            for(ticket_string in tickets_string_list){
+                val (class_str, wagon_str, seat_str, date_str) = ticket_string.split("-")
+                output.add(TicketData(class_str.toInt(),wagon_str.toInt(),seat_str.toInt(), date_str))
+            }
+
+            input.elements.removeAt(i)
+            input.write_file();
+            input.write_line_to_file(found_element)
+
+            break
+        }
+
+        // Sus, că îmi zice că asignarea user_found==true nu e validată vreodată; sper să fie doar prost linterul
+        if(!user_found){
+            println("Utilizator nou; adăugat în CSV")
+            FileOutputStream(File(filename),true).bufferedWriter(Charsets.UTF_8).use { out -> out.write("$username,") }
+        }
+    }
+
+    return output
+
+}
+
 fun main(){
 
     var test = CSVInput("test.csv")
