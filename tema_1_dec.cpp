@@ -50,7 +50,7 @@ void pass_strength_factors(string password){
     }
     
     // a trebuit să scot câteva caractere speciale ptc nu se potriveau cu parse-uriea de stringuri nativă c++
-    regex special_regex("[!@#$%^&*()_=+{};:<>,./?]+");
+        regex special_regex("[!@#$%^&*()_=+{};:<>,./?]+");
     if(!regex_search(password, special_regex)){
         throw(1);
     }
@@ -481,6 +481,8 @@ vector<tuple<int,int,int,string>> get_ticket_list(string filename, string userna
             user_found = 1;
             //cout<<"matched"<<endl;
             getline(user_string, element, ',');
+
+            // stocăm linia, pentru a o șterge și a o pune la finalul array-ului
             user_tickets_temp = input.elements[i];
 
             // acum avem lista de tupluri, pe care o putem adăuga
